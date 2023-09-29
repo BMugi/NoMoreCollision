@@ -3,7 +3,7 @@ import multiprocessing
 from multiprocessing import Pool
 import pandas as pd
 import numpy as np
-
+delta_timestamp = 0.1
 # This function converts dataset into m/s or m unit
 def dataset_unit_conversion(input_dataframe):
     # Load the Excel file into a DataFrame
@@ -18,56 +18,76 @@ def dataset_unit_conversion(input_dataframe):
 
     return df
 
+def calculate_radian (input_dataframe):
+    if 'YawRate' not in df.columns or 'Timestamp' not in df.columns:
+        raise ValueError("DataFrame must have 'YawRate' and 'Timestamp' columns.")
+    
+    df_copy = input_dataframe.copy()
+        
+    # Initialize the 'Radian' column with zeros
+    df_copy['Radian'] = 0.0
+    
+    # Calculate radians using the provided formula
+    for i in range(1, len(df_copy)):
+        df_copy.at[i, 'Radian'] = df_copy.at[i-1, 'Radian'] + df_copy.at[i-1, 'YawRate'] * df_copy.at[i, 'dT']
+    
+    return df_copy
 
-def extract_object_coordinates(df, object_number):
-    x_column = f'{object_number}ObjectDistance_X'
-    y_column = f'{object_number}ObjectDistance_Y'
-    x_coordinates = df[x_column].tolist()
-    y_coordinates = df[y_column].tolist()
-    return x_coordinates, y_coordinates
+def calculate_car_velocity (input_dataframe):
+    df_copy = input_dataframe.copy()
+    
+    # Calculate 'velocity_x' and 'velocity_y' using trigonometric functions
+    df_copy['VehicleVelocity_X'] = df_copy['VehicleSpeed'] * np.cos(df_copy['Radian'])
+    df_copy['VehicleVelocity_Y'] = df_copy['VehicleSpeed'] * np.sin(df_copy['Radian'])
+    
+    return df_copy
+
+
+def calculate_deltaT(input_dataframe):
+    df_copy = input_dataframe.copy()
+
+    df_copy['dT'] = df_copy['Timestamp'].diff()
+
+    return df_copy
+
 
 
 # Define a function to calculate the position of the car relative to ground
-def calculate_car_position(data):
-    delta_timestamp = 0.5  # Constant delta timestamp of 0.5 seconds
+def calculate_car_position(input_dataframe):
 
-    # Initialize lists to store Pgc and Vgc
-    Pgc = [(0, 0)]  # Initial position (0, 0)
-    Vgc = []
-
-    # Loop through the rows of the DataFrame
-    for _, row in data.iloc[1:].iterrows():
-        car_velocity = (row['Car_Velocity_X'], row['Car_Velocity_Y'])
-
-        # Calculate new position based on the previous position, velocity, and constant delta timestamp
-        previous_position = Pgc[-1]  # Get the last recorded position
-        new_position = (
-            previous_position[0] + car_velocity[0] * delta_timestamp,
-            previous_position[1] + car_velocity[1] * delta_timestamp,
-        )
-        Pgc.append(new_position)  # Append the new position
-
-        Vgc.append(car_velocity)  # Append the car's velocity
-
-    # Remove the initial (0, 0) position from Pgc
-    Pgc = Pgc[1:]
-
-    return Pgc, Vgc
+    df_copy = input_dataframe.copy()
+    
+    df_copy['VehiclePosition_X'] = 0.0
+    df_copy['VehiclePosition_Y'] = 0.0
+    
+    for i in range(1, len(df_copy)):
+        df_copy.at[i, 'VehiclePosition_X'] = df_copy.at[i-1, 'VehiclePosition_X'] + df_copy.at[i-1, 'VehicleVelocity_X'] * df_copy.at[i, 'dT']
+        df_copy.at[i, 'VehiclePosition_Y'] = df_copy.at[i-1, 'VehiclePosition_Y'] + df_copy.at[i-1, 'VehicleVelocity_Y'] * df_copy.at[i, 'dT']
+    
+    return df_copy
 
 
 # Define a function to calculate the position of objects relative to ground
-def calculate_object_position(data, Pgc):
+def calculate_object_position(input_dataframe, object_number):
+
+    df_copy = input_dataframe.copy()
+    
+    for i in range(len(df_copy)):
+        df_copy.at[i, f'{object_number}ObjectPosition_X'] = df_copy.at[i, 'VehiclePosition_X'] + df_copy.at[i, f'{object_number}ObjectDistance_X']
+        df_copy.at[i, f'{object_number}ObjectPosition_Y'] = df_copy.at[i, 'VehiclePosition_Y'] + df_copy.at[i, f'{object_number}ObjectDistance_Y']
+    
+    return df_copy
     # Initialize a list to store Pgo
-    Pgo = []
+    #Pgo = []
 
     # Loop through the rows of the DataFrame
-    for _, row in data.iloc[1:].iterrows():
-        Pco = (row['Object_Position_X'], row['Object_Position_Y'])  # Object position relative to the car
-        Pgc_t = Pgc[_]  # Car's position relative to the ground at timestamp t
-        Pgo_t = (Pgc_t[0] + Pco[0], Pgc_t[1] + Pco[1])  # Object position relative to the ground at timestamp t
-        Pgo.append(Pgo_t)  # Append the calculated Pgo to the list
+    #for _, row in data.iloc[1:].iterrows():
+    #    Pco = (row['Object_Position_X'], row['Object_Position_Y'])  # Object position relative to the car
+    #    Pgc_t = Pgc[_]  # Car's position relative to the ground at timestamp t
+    #    Pgo_t = (Pgc_t[0] + Pco[0], Pgc_t[1] + Pco[1])  # Object position relative to the ground at timestamp t
+    #    Pgo.append(Pgo_t)  # Append the calculated Pgo to the list
 
-    return Pgo
+    #return Pgo
 
 
 # Define a function to calculate the velocity of objects relative to ground
@@ -85,57 +105,28 @@ def calculate_object_velocity(data, Vgc):
     return Vgo
 
 
-
-def calculate_car(df):
-    object_id = df['ID']
-
-    if object_id.startswith("car"):
-    # Calculate car position relative to ground
-    Pgc, Vgc = calculate_car_position(df)
-    return Pgc, Vgc
-
-def process_object_data(data, car_positions):
-    object_id = data['ID']
-
-    # Check if it's an object based on the "ID" column
-    if object_id.startswith("object"):
-        Pgo = calculate_object_position(data, car_positions)
-        Vgo = calculate_object_velocity(data, car_positions)
-        return object_id, Pgo, Vgo
-    else:
-        return None  # Not an object
-
 if __name__ == "__main__":
     # Load the CSV file into a Pandas DataFrame
     df = pd.read_excel("DevelopmentData.xlsx")
 
 
-    converted_df = dataset_unit_conversion(df)
+    df = dataset_unit_conversion(df)
+
+    df = calculate_deltaT(df)
+
+    df = calculate_radian(df)
+
+    df = calculate_car_velocity(df)
+
+    df = calculate_car_position (df)
+
+    df = calculate_object_position(df,"First")
+    df = calculate_object_position(df,"Second")
+    df = calculate_object_position(df,"Third")
+    df = calculate_object_position(df,"Fourth")
 
     
 
-    # Calculate car position relative to ground
-    car_positions, car_velocities = calculate_car(df)
+    print (df)
 
-    # Filter out object data
-    object_df = df[df['ID'].str.startswith("object")]
-
-    # Create a list of dataframes for each object
-    object_dataframes = [group for _, group in object_df.groupby('ID')]
-
-    # Initialize a Pool for multiprocessing
-    num_processes = multiprocessing.cpu_count()  # Number of CPU cores
-    pool = Pool(processes=num_processes)
-
-    # Use parallel processing to calculate positions and velocities for each object
-    results = pool.starmap(process_object_data, [(data, car_positions) for data in object_dataframes])
-    pool.close()
-    pool.join()
-
-    # Now, 'results' is a list of tuples, where each tuple contains (object_id, Pgo, Vgo)
-
-    # Process and use the results as needed
-    for result in results:
-        if result is not None:
-            object_id, positions, velocities = result
-            # Process positions and velocities for objects
+    
