@@ -4,6 +4,29 @@ from multiprocessing import Pool
 import pandas as pd
 import numpy as np
 
+# This function converts dataset into m/s or m unit
+def dataset_unit_conversion(input_dataframe):
+    # Load the Excel file into a DataFrame
+    df = input_dataframe.copy()
+
+    # Iterate through columns and divide based on column name
+    for column in df.columns:
+        if 'speed' in column.lower():
+            df[column] = df[column] / 256
+        elif 'distance' in column.lower():
+            df[column] = df[column] / 128
+
+    return df
+
+
+def extract_object_coordinates(df, object_number):
+    x_column = f'{object_number}ObjectDistance_X'
+    y_column = f'{object_number}ObjectDistance_Y'
+    x_coordinates = df[x_column].tolist()
+    y_coordinates = df[y_column].tolist()
+    return x_coordinates, y_coordinates
+
+
 # Define a function to calculate the position of the car relative to ground
 def calculate_car_position(data):
     delta_timestamp = 0.5  # Constant delta timestamp of 0.5 seconds
@@ -84,7 +107,12 @@ def process_object_data(data, car_positions):
 
 if __name__ == "__main__":
     # Load the CSV file into a Pandas DataFrame
-    df = pd.read_csv("your_dataset.csv")
+    df = pd.read_excel("DevelopmentData.xlsx")
+
+
+    converted_df = dataset_unit_conversion(df)
+
+    
 
     # Calculate car position relative to ground
     car_positions, car_velocities = calculate_car(df)
