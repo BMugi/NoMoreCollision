@@ -24,7 +24,7 @@ def extract_object_coordinates(df, object_number):
 
 
 
-if __name__ == "__main__":
+def object_data_proc():
     # Load the CSV file into a Pandas DataFrame
     df = pd.read_excel("DevelopmentData.xlsx")
 
@@ -37,7 +37,4 @@ if __name__ == "__main__":
     object3_x, object3_y = extract_object_coordinates(converted_df, "Third")
     object4_x, object4_y = extract_object_coordinates(converted_df, "Fourth")
 
-    # Example: Print coordinates for the first object
-    print("Coordinates for Object 1:")
-    print("X:", object1_x)
-    print("Y:", object1_y)
+    return object1_x, object1_y,object2_x, object2_y,object3_x, object3_y,object4_x, object4_y
