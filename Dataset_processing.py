@@ -64,6 +64,9 @@ def calculate_object_velocity(data, Vgc):
 
 
 def calculate_car(df):
+    object_id = data['ID']
+
+    if object_id.startswith("car"):
     # Calculate car position relative to ground
     Pgc, Vgc = calculate_car_position(df)
     return Pgc, Vgc
