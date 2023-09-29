@@ -68,7 +68,18 @@ F, H, Q, R, x, P = initialize_kalman_filter()
 # Apply Kalman Filter to estimate positions
 estimated_positions = kalman_filter(F, H, Q, R, x, P, measurements)
 
-# Print or use estimated positions for further analysis
+"""# Print or use estimated positions for further analysis
 for i, (estimated_dx, estimated_dy) in enumerate(estimated_positions):
     print(f"Timestamp {timestamps[i]}: Estimated Dx = {estimated_dx}, Estimated Dy = {estimated_dy}")
-    
+  """
+# Create a new DataFrame for the estimated positions
+estimated_df = pd.DataFrame({
+    'Timestamp': timestamps,
+    'Estimated_Dx': [pos[0] for pos in estimated_positions],
+    'Estimated_Dy': [pos[1] for pos in estimated_positions]
+})
+
+# Save the estimated positions to a new CSV file
+estimated_df.to_csv('estimated_positions.csv', index=False)
+
+print("Estimated positions saved to 'estimated_positions.csv'.")
