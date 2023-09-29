@@ -3,7 +3,6 @@ import multiprocessing
 from multiprocessing import Pool
 import pandas as pd
 import numpy as np
-delta_timestamp = 0.1
 # This function converts dataset into m/s or m unit
 def dataset_unit_conversion(input_dataframe):
     # Load the Excel file into a DataFrame
@@ -19,8 +18,6 @@ def dataset_unit_conversion(input_dataframe):
     return df
 
 def calculate_radian (input_dataframe):
-    if 'YawRate' not in df.columns or 'Timestamp' not in df.columns:
-        raise ValueError("DataFrame must have 'YawRate' and 'Timestamp' columns.")
     
     df_copy = input_dataframe.copy()
         
