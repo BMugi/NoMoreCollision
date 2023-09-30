@@ -26,31 +26,26 @@ def animate(i):
     if quiver is not None:
         quiver.remove()
 
-    for idx, line in enumerate([line1, line2, line3, line4], start=1):
-        color = 'ro' if target_id[i] == idx else 'go'
-        line.set_color(color[0])  # Set color to red if target
-
-    # Remove previous annotations
-    for txt in ax.texts:
-        if not txt.get_text().startswith('Legend'):
-            txt.set_visible(False)
-
     # legend infos
-    scenario_info = f'Scenario: {scene_id[i] if scene_id[i] != 0 else "None"}'
+    scenario_info = f'Scenario: {first_scene[i]} | {second_scene[i]} | {third_scene[i]} | {fourth_scene[i]}'
     red_label = f'Target object'
     green_label = 'Non-target objects\n'
 
     red_patch = mlines.Line2D([], [], color='red', marker='o', markersize=10, label=red_label, linestyle='None')
     green_patch = mlines.Line2D([], [], color='green', marker='o', markersize=10, label=green_label, linestyle='None')
-    scenario_patch = Patch(color='none', label=scenario_info) 
+    scenario_patch = Patch(color='none', label=scenario_info)
 
     legend = ax.legend(handles=[red_patch, green_patch, scenario_patch], loc='upper right', frameon=True)
 
-    line1.set_data(object_1_x[i], object_1_y[i])  
-    line2.set_data(object_2_x[i], object_2_y[i]) 
+    for idx, line, scene in zip(range(1, 5), [line1, line2, line3, line4], [first_scene, second_scene, third_scene, fourth_scene]):
+        color = 'ro' if scene[i] != 0 else 'go'
+        line.set_color(color[0])  # Set color to red if target
+
+    line1.set_data(object_1_x[i], object_1_y[i])
+    line2.set_data(object_2_x[i], object_2_y[i])
     line3.set_data(object_3_x[i], object_3_y[i])
-    line4.set_data(object_4_x[i], object_4_y[i]) 
-    line5.set_data(car_x[i], car_y[i]) 
+    line4.set_data(object_4_x[i], object_4_y[i])
+    line5.set_data(car_x[i], car_y[i])
 
     ax.arrow(car_x[i], car_y[i], car_vx[i], car_vy[i], color='k', head_width=0.2)
 
@@ -82,8 +77,10 @@ car_x = df['VehiclePosition_X'].tolist()
 car_y = df['VehiclePosition_Y'].tolist()
 car_vx = df['VehicleVelocity_X'].tolist()
 car_vy = df['VehicleVelocity_Y'].tolist()
-target_id = df['Object_ID'].tolist()
-scene_id = df['Scenario_ID'].tolist()
+first_scene = df['FirstScenario_ID'].tolist()
+second_scene = df['SecondScenario_ID'].tolist()
+third_scene = df['ThirdScenario_ID'].tolist()
+fourth_scene = df['FourthScenario_ID'].tolist()
 
 
 # plot
