@@ -31,24 +31,24 @@ def dataset_unit_conversion(input_dataframe):
 
 def calculate_radian (input_dataframe):
     """
-    Calculate the radian of a car's movement based on yaw rates and time intervals.
+    Calculate the degree of a car's movement based on yaw rates and time intervals.
 
     Args:
         input_dataframe (pd.DataFrame): A DataFrame containing at least two columns:
-            - 'YawRate' (float): Yaw rate (angular velocity) of the car in radians per second.
+            - 'YawRate' (float): Yaw rate (angular velocity) of the car in degrees per second.
             - 'dT' (float): Time interval in seconds between consecutive data points.
     
     Returns:
-        pd.DataFrame: A copy of the input DataFrame with an additional 'Radian' column that represents
-                      the cumulative radian angle of the car's movement.
+        pd.DataFrame: A copy of the input DataFrame with an additional 'Degree' column that represents
+                      the cumulative degree angle of the car's movement.
     """
     
     df_copy = input_dataframe.copy()
         
-    df_copy['Radian'] = 0.0
+    df_copy['Degree'] = 0.0
     
     for i in range(1, len(df_copy)):
-        df_copy.at[i, 'Radian'] = df_copy.at[i-1, 'Radian'] + df_copy.at[i-1, 'YawRate'] * df_copy.at[i, 'dT']
+        df_copy.at[i, 'Degree'] = df_copy.at[i-1, 'Degree'] + df_copy.at[i-1, 'YawRate'] * df_copy.at[i, 'dT']
     
     return df_copy
 
@@ -60,7 +60,7 @@ def calculate_car_velocity (input_dataframe):
     Args:
         input_dataframe (pd.DataFrame): A DataFrame with at least two columns:
             - 'VehicleSpeed' (float): The speed of the car in [m/s].
-            - 'Radian' (float): The radian angle representing the car's orientation.
+            - 'Degree' (float): The degree angle representing the car's orientation.
 
     Returns:
         pd.DataFrame: A copy of the input DataFrame with two additional columns:
@@ -70,8 +70,8 @@ def calculate_car_velocity (input_dataframe):
 
     df_copy = input_dataframe.copy()
     
-    df_copy['VehicleVelocity_X'] = df_copy['VehicleSpeed'] * np.cos(df_copy['Radian'])
-    df_copy['VehicleVelocity_Y'] = df_copy['VehicleSpeed'] * np.sin(df_copy['Radian'])
+    df_copy['VehicleVelocity_X'] = df_copy['VehicleSpeed'] * np.cos(df_copy['Degree'])
+    df_copy['VehicleVelocity_Y'] = df_copy['VehicleSpeed'] * np.sin(df_copy['Degree'])
     
     return df_copy
 
@@ -190,7 +190,7 @@ def remove_not_needed_data(input_dataframe):
         pd.DataFrame: A copy of the input DataFrame with unnecessary columns removed.
     """
 
-    df = input_dataframe.drop(columns=['VehicleSpeed','YawRate','Radian'])
+    df = input_dataframe.drop(columns=['VehicleSpeed','YawRate'])
     for object_number in object_list:
         df = df.drop(columns=[f'{object_number}ObjectDistance_X', 
                               f'{object_number}ObjectDistance_Y',
@@ -226,9 +226,9 @@ def final_dataset():
 
     object_velocity_df = calculate_object_velocity(object_position_df)
 
-    final_df = remove_not_needed_data(object_velocity_df)
+    #final_df = remove_not_needed_data(object_velocity_df)
 
-    return final_df 
+    return object_velocity_df 
 
 df = final_dataset()
 df.to_excel("ProcessedData.xlsx", index=False)
