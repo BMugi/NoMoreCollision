@@ -4,11 +4,15 @@ import coordinate_gen
 import pandas
 
 def is_object_angle_nearside(dist_long, dist_lat):
-    # Calculate the angle in radians
-    angle_rad = math.atan(dist_long / dist_lat)
-    # Convert the angle from radians to degrees
-    angle_deg = math.degrees(angle_rad)
-    print(angle_deg)
+    if dist_lat == 0:
+        if dist_long < 0:
+            angle_deg = 90
+    else:
+        # Calculate the angle in radians
+        angle_rad = math.atan(dist_long / dist_lat)
+        # Convert the angle from radians to degrees
+        angle_deg = math.degrees(angle_rad)
+        print(angle_deg)
     # Check if the angle is smaller than 45 degrees
     return angle_deg < 45
 
@@ -25,7 +29,7 @@ def is_car_turning(yaw_degree):
     """
     turning = False
     sum_deg = sum(yaw_degree)
-    if sum_deg >= 0.5:
+    if sum_deg >= 1:
         turning = True
     return turning, sum_deg
 
@@ -72,23 +76,26 @@ def direction_of_obj(x, y, speed_lat, speed_long):
 
     return angle_deg
 
-def is_this_CPNCO(dataset):
+def is_this_CPNCO(dataset, i):
     """
     Determines if this scenario is child running before car
     need to have last 10 dataset
     :return:
     """
+    # TODO handle first 10 data
     object_name = "First"
-    ObjectDistance_X = dataset[f'{object_name}ObjectDistance_X'].tail(10).tolist()
-    ObjectDistance_Y = dataset[f'{object_name}ObjectDistance_Y'].tail(10).tolist()
-    print(ObjectDistance_Y)
-    Yaw_degree = dataset['Degree'].tail(10).tolist()
+    ObjectDistance_X = dataset[f'{object_name}ObjectDistance_X'].iloc[i-9:i].tolist()
+    print(ObjectDistance_X)
+    ObjectDistance_Y = dataset[f'{object_name}ObjectDistance_Y'].iloc[i-9:i].tolist()
+
+    Yaw_degree = dataset['Degree'].iloc[i-9:i].tolist()
     print(Yaw_degree)
     if is_object_angle_nearside(ObjectDistance_Y[-1], ObjectDistance_X[-1]):
         turning, sum_of_deg = is_car_turning(Yaw_degree)
         print(turning, sum_of_deg)
         print("it's nearside ")
     return True
+
 
 def dummy():
     #dataset = Dataset_processing.final_dataset()
@@ -115,7 +122,7 @@ def Main():
     # Need to run this on 4 objects simultaneously with threads
     dataset = Dataset_processing.final_dataset()
     #print (dataset_or)
-    if is_this_CPNCO(dataset):
+    if is_this_CPNCO(dataset, 23):
         print("This is CNPCO")
     print("Program run")
 
