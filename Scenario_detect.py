@@ -1,17 +1,16 @@
-import Dataset_processing
+
 import math
 import coordinate_gen
 import pandas
 
 def is_object_angle_nearside(dist_long, dist_lat):
+    angle_deg = 0
     if dist_lat == 0:
         if dist_long < 0:
             angle_deg = 90
     else:
         # Calculate the angle in radians
-        angle_rad = math.atan(dist_long / dist_lat)
-        # Convert the angle from radians to degrees
-        angle_deg = math.degrees(angle_rad)
+        angle_deg = math.atan(dist_long / dist_lat)
         print(angle_deg)
     # Check if the angle is smaller than 45 degrees
     return angle_deg < 45
@@ -76,14 +75,14 @@ def direction_of_obj(x, y, speed_lat, speed_long):
 
     return angle_deg
 
-def is_this_CPNCO(dataset, i):
+def is_this_CPNCO(dataset, object_name="First", i):
     """
     Determines if this scenario is child running before car
     need to have last 10 dataset
     :return:
     """
     # TODO handle first 10 data
-    object_name = "First"
+
     ObjectDistance_X = dataset[f'{object_name}ObjectDistance_X'].iloc[i-9:i].tolist()
     print(ObjectDistance_X)
     ObjectDistance_Y = dataset[f'{object_name}ObjectDistance_Y'].iloc[i-9:i].tolist()
