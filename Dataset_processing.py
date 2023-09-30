@@ -5,7 +5,6 @@ import Scenario_detect
 
 object_list = ["First","Second","Third","Fourth"]
 
-
 def dataset_unit_conversion(input_dataframe):
     """
     Convert data columns in a DataFrame to standard units: [m], [m/s].
@@ -151,22 +150,27 @@ def calculate_object_data(input_dataframe):
         df_copy.at[i, f'{object_name}ObjectPosition_Y'] = df_copy.at[i, 'VehiclePosition_Y'] + df_copy.at[i, f'{object_name}ObjectDistance_Y']
 
     def scenario_detect (object_name, index_num, object_number):
-        scneario_id = Scenario_detect.is_this_CPNCO(df_copy, index_num, object_name)
-        if scneario_id == 0 and scneario_id > 3:
+        scneario_id = Scenario_detect.scenario_ID(df_copy, index_num, object_name)
+        if scneario_id == 0 or scneario_id > 3:
             df_copy.at[index_num,'Objet_ID'] = int(0)
             df_copy.at[index_num,'Scenario_ID'] = int(0)
         else:
-            df_copy.at[index_num,'Objet_ID'] = int(object_number+1)
+            df_copy.at[index_num,'Objet_ID'] = int(object_number)
             df_copy.at[index_num,'Scenario_ID'] = int(scneario_id)
 
     with ThreadPoolExecutor() as executor:
         futures = []
-        for object_num, (object_name) in enumerate(object_list):
+        for object_name in object_list:
             for i in range(len(df_copy)):
                 futures.append(executor.submit(calculate_velocity, object_name, i))
                 futures.append(executor.submit(calculate_position, object_name, i))
-            for i in range(9,len(df_copy)):
-                futures.append(executor.submit(scenario_detect, object_name, i,object_num))
+
+        for i in range(9,len(df_copy)):
+            futures.append(executor.submit(scenario_detect, "First", i,int(1)))
+            futures.append(executor.submit(scenario_detect, "Second", i,int(2)))
+            futures.append(executor.submit(scenario_detect, "Third", i,int(3)))
+            futures.append(executor.submit(scenario_detect, "Fourth", i,int(4)))
+
             
 
         # Wait for all tasks to complete
@@ -226,8 +230,12 @@ def final_dataset():
 
     object_data_df.to_csv("ProcessedData.csv", index=False)
 
+    print ("Successfully processed data")
+
     final_df = data_for_visual(object_data_df)
 
     final_df.to_csv("Data_for_visualization.csv", index=False)
+
+final_dataset()
 
     
