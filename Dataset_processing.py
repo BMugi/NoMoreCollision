@@ -149,27 +149,21 @@ def calculate_object_data(input_dataframe):
         df_copy.at[i, f'{object_name}ObjectPosition_X'] = df_copy.at[i, 'VehiclePosition_X'] + df_copy.at[i, f'{object_name}ObjectDistance_X']
         df_copy.at[i, f'{object_name}ObjectPosition_Y'] = df_copy.at[i, 'VehiclePosition_Y'] + df_copy.at[i, f'{object_name}ObjectDistance_Y']
 
-    def scenario_detect (object_name, index_num, object_number):
+    def scenario_detect (object_name, index_num):
         scneario_id = Scenario_detect.scenario_ID(df_copy, index_num, object_name)
-        if scneario_id == 0 or scneario_id > 3:
-            df_copy.at[index_num,'Objet_ID'] = int(0)
-            df_copy.at[index_num,'Scenario_ID'] = int(0)
-        else:
-            df_copy.at[index_num,'Objet_ID'] = int(object_number)
-            df_copy.at[index_num,'Scenario_ID'] = int(scneario_id)
-
+        df_copy.at[index_num,f'{object_name}Scenario_ID'] = int(scneario_id)
+        
     with ThreadPoolExecutor() as executor:
         futures = []
         for object_name in object_list:
             for i in range(len(df_copy)):
                 futures.append(executor.submit(calculate_velocity, object_name, i))
                 futures.append(executor.submit(calculate_position, object_name, i))
+            for i in range(9,len(df_copy)):
+                futures.append(executor.submit(scenario_detect, object_name, i))
 
-        for i in range(9,len(df_copy)):
-            futures.append(executor.submit(scenario_detect, "First", i,int(1)))
-            futures.append(executor.submit(scenario_detect, "Second", i,int(2)))
-            futures.append(executor.submit(scenario_detect, "Third", i,int(3)))
-            futures.append(executor.submit(scenario_detect, "Fourth", i,int(4)))
+
+        
 
             
 
@@ -196,7 +190,7 @@ def data_for_visual(input_dataframe):
                  'ThirdObjectPosition_X','ThirdObjectPosition_Y',
                  'FourthObjectPosition_X','FourthObjectPosition_Y',
                  'VehiclePosition_X','VehiclePosition_Y',
-                 'Objet_ID','Scenario_ID']
+                 'FirstScenario_ID','SecondScenario_ID','ThirdScenario_ID','FourthScenario_ID']
     df = input_dataframe[new_order]
 
     return df
