@@ -1,8 +1,7 @@
-
-import multiprocessing
-from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import numpy as np
+import Scenario_detect 
 
 object_list = ["First","Second","Third","Fourth"]
 
@@ -123,37 +122,9 @@ def calculate_car_position(input_dataframe):
     return df_copy
 
 
-def calculate_object_position(input_dataframe):
+def calculate_object_data(input_dataframe):
     """
-    Calculate the position of objects relative to the ground based on their distances from a vehicle.
-
-    Args:
-        input_dataframe (pd.DataFrame): A DataFrame with columns representing:
-            - 'VehiclePosition_X' (float): The x-coordinate of the vehicle's position relative to the ground in [m].
-            - 'VehiclePosition_Y' (float): The y-coordinate of the vehicle's position relative to the ground in [m].
-            - 'ObjectNumber' (string): An identifier for the objects (e.g., 'First').
-            - 'ObjectDistance_X' (float): The distance of objects from the vehicle in the x-direction in [m].
-            - 'ObjectDistance_Y' (float): The distance of objects from the vehicle in the y-direction in [m].
-
-    Returns:
-        pd.DataFrame: A copy of the input DataFrame with additional columns for each object:
-            - '{ObjectNumber}ObjectPosition_X' (float): The x-coordinate of the object's position relative to the ground in [m].
-            - '{ObjectNumber}ObjectPosition_Y' (float): The y-coordinate of the object's position relative to the ground in [m].
-    """
-
-    df_copy = input_dataframe.copy()
-
-    for object_number in object_list:
-        for i in range(len(df_copy)):
-            df_copy.at[i, f'{object_number}ObjectPosition_X'] = df_copy.at[i, 'VehiclePosition_X'] + df_copy.at[i, f'{object_number}ObjectDistance_X']
-            df_copy.at[i, f'{object_number}ObjectPosition_Y'] = df_copy.at[i, 'VehiclePosition_Y'] + df_copy.at[i, f'{object_number}ObjectDistance_Y']
-        
-    return df_copy
-
-
-def calculate_object_velocity(input_dataframe):
-    """
-    Calculate the velocity of objects relative to the ground in both the x and y directions.
+    Calculate all neccessary data for all objects.
 
     Args:
         input_dataframe (pd.DataFrame): A DataFrame with columns representing:
@@ -171,17 +142,44 @@ def calculate_object_velocity(input_dataframe):
 
     df_copy = input_dataframe.copy()
     
-    for object_number in object_list:
-        for i in range(len(df_copy)):
-            df_copy.at[i, f'{object_number}ObjectVelocity_X'] = df_copy.at[i, 'VehicleVelocity_X'] + df_copy.at[i, f'{object_number}ObjectSpeed_X']
-            df_copy.at[i, f'{object_number}ObjectVelocity_Y'] = df_copy.at[i, 'VehicleVelocity_Y'] + df_copy.at[i, f'{object_number}ObjectSpeed_Y']
-        
+    def calculate_velocity(object_name, i):
+        df_copy.at[i, f'{object_name}ObjectVelocity_X'] = df_copy.at[i, 'VehicleVelocity_X'] + df_copy.at[i, f'{object_name}ObjectSpeed_X']
+        df_copy.at[i, f'{object_name}ObjectVelocity_Y'] = df_copy.at[i, 'VehicleVelocity_Y'] + df_copy.at[i, f'{object_name}ObjectSpeed_Y']
+
+    def calculate_position(object_name, i):
+        df_copy.at[i, f'{object_name}ObjectPosition_X'] = df_copy.at[i, 'VehiclePosition_X'] + df_copy.at[i, f'{object_name}ObjectDistance_X']
+        df_copy.at[i, f'{object_name}ObjectPosition_Y'] = df_copy.at[i, 'VehiclePosition_Y'] + df_copy.at[i, f'{object_name}ObjectDistance_Y']
+
+    def scenario_detect (object_name, index_num, object_number):
+        scneario_id = Scenario_detect.is_this_CPNCO(df_copy, index_num, object_name)
+        if scneario_id == 0 and scneario_id > 3:
+            df_copy.at[index_num,'Objet_ID'] = int(0)
+            df_copy.at[index_num,'Scenario_ID'] = int(0)
+        else:
+            df_copy.at[index_num,'Objet_ID'] = int(object_number+1)
+            df_copy.at[index_num,'Scenario_ID'] = int(scneario_id)
+
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for object_num, (object_name) in enumerate(object_list):
+            for i in range(len(df_copy)):
+                futures.append(executor.submit(calculate_velocity, object_name, i))
+                futures.append(executor.submit(calculate_position, object_name, i))
+            for i in range(9,len(df_copy)):
+                futures.append(executor.submit(scenario_detect, object_name, i,object_num))
+            
+
+        # Wait for all tasks to complete
+        for future in futures:
+            future.result()
+
     return df_copy
 
 
-def remove_not_needed_data(input_dataframe):
+
+def data_for_visual(input_dataframe):
     """
-    Remove unnecessary data columns from a DataFrame, leaving only data relative to the ground.
+    Remove unnecessary data columns from a DataFrame, leaving only data relative to the ground in correct order.
 
     Args:
         input_dataframe (pd.DataFrame): A DataFrame containing various columns of data.
@@ -189,14 +187,16 @@ def remove_not_needed_data(input_dataframe):
     Returns:
         pd.DataFrame: A copy of the input DataFrame with unnecessary columns removed.
     """
+    new_order = ['FirstObjectPosition_X','FirstObjectPosition_Y',
+                 'SecondObjectPosition_X','SecondObjectPosition_Y',
+                 'ThirdObjectPosition_X','ThirdObjectPosition_Y',
+                 'FourthObjectPosition_X','FourthObjectPosition_Y',
+                 'VehiclePosition_X','VehiclePosition_Y',
+                 'Objet_ID','Scenario_ID']
+    df = input_dataframe[new_order]
 
-    df = input_dataframe.drop(columns=['VehicleSpeed','YawRate'])
-    for object_number in object_list:
-        df = df.drop(columns=[f'{object_number}ObjectDistance_X', 
-                              f'{object_number}ObjectDistance_Y',
-                              f'{object_number}ObjectSpeed_X',
-                              f'{object_number}ObjectSpeed_Y'])
     return df
+
 
 # function reads data from excel sheet to DataFrame and do all neccessary data processing and return data which is only relative to the ground
 def final_dataset():
@@ -222,15 +222,12 @@ def final_dataset():
 
     car_position_df = calculate_car_position (car_velocity_df)
 
-    object_position_df = calculate_object_position(car_position_df)
+    object_data_df = calculate_object_data(car_position_df)
 
-    object_velocity_df = calculate_object_velocity(object_position_df)
+    object_data_df.to_csv("ProcessedData.csv", index=False)
 
-    #final_df = remove_not_needed_data(object_velocity_df)
+    final_df = data_for_visual(object_data_df)
 
-    return object_velocity_df 
-
-# df = final_dataset()
-# df.to_excel("ProcessedData.xlsx", index=False)
+    final_df.to_csv("Data_for_visualization.csv", index=False)
 
     
