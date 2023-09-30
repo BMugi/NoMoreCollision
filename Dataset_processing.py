@@ -232,4 +232,5 @@ def final_dataset():
 
     return object_data_df
 
-    
+if __name__ == "__main__":
+    final_dataset()
