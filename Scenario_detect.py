@@ -186,15 +186,19 @@ def scenario_ID(dataset, i, object_name):
     """
     ObjectDistance_X = dataset[f'{object_name}ObjectDistance_X'].iloc[i - last_measurements:i].tolist()
     ObjectDistance_Y = dataset[f'{object_name}ObjectDistance_Y'].iloc[i - last_measurements:i].tolist()
+    Last_ObjectDistance_X = ObjectDistance_X[-1]
+    Last_ObjectDistance_Y = ObjectDistance_Y[-1]
+
+    Object_dit_mag = math.sqrt((Last_ObjectDistance_X * Last_ObjectDistance_X) + (Last_ObjectDistance_Y * Last_ObjectDistance_Y) )
 
     Yaw_degree = dataset['Degree'].iloc[i - last_measurements:i].tolist()
     scenario = 0
-    if ObjectDistance_Y != 0 and ObjectDistance_X != 0:
+    if Object_dit_mag < 5:
         if is_this_CPNCO(ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
             scenario = 1
-        if is_this_CPLA(dataset, i, object_name, ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
+        elif is_this_CPLA(dataset, i, object_name, ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
             scenario = 3
-        if is_this_CPTA(ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
+        elif is_this_CPTA(ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
             scenario = 2
 
     return scenario
