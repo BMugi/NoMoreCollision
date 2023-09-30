@@ -29,7 +29,7 @@ def dataset_unit_conversion(input_dataframe):
     return df
 
 
-def calculate_radian (input_dataframe):
+def calculate_degree (input_dataframe):
     """
     Calculate the degree of a car's movement based on yaw rates and time intervals.
 
@@ -216,7 +216,7 @@ def final_dataset():
 
     dT_df = calculate_deltaT(converted_df)
 
-    radian_df = calculate_radian(dT_df)
+    radian_df = calculate_degree(dT_df)
 
     car_velocity_df = calculate_car_velocity(radian_df)
 
@@ -230,6 +230,7 @@ def final_dataset():
 
     return object_velocity_df 
 
-df = final_dataset()
-df.to_excel("ProcessedData.xlsx", index=False)
+# df = final_dataset()
+# df.to_excel("ProcessedData.xlsx", index=False)
+
     
