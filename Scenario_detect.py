@@ -1,4 +1,4 @@
-import Dataset_processing
+
 import math
 
 
@@ -188,14 +188,14 @@ def scenario_ID(dataset, i, object_name):
     ObjectDistance_Y = dataset[f'{object_name}ObjectDistance_Y'].iloc[i - last_measurements:i].tolist()
 
     Yaw_degree = dataset['Degree'].iloc[i - last_measurements:i].tolist()
-
     scenario = 0
-    if is_this_CPNCO(ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
-        scenario = 1
-    if is_this_CPLA(dataset, i, object_name, ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
-        scenario = 3
-    if is_this_CPTA(ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
-        scenario = 2
+    if ObjectDistance_Y != 0 and ObjectDistance_X != 0:
+        if is_this_CPNCO(ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
+            scenario = 1
+        if is_this_CPLA(dataset, i, object_name, ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
+            scenario = 3
+        if is_this_CPTA(ObjectDistance_X, ObjectDistance_Y, Yaw_degree):
+            scenario = 2
 
     return scenario
 
