@@ -1,2 +1,2 @@
 @echo off
-python visualize_global.py
+python3 visualize_global.py
